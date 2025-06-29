@@ -8,9 +8,8 @@
   "main": "./src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node ./src/index.js",
+    "dev": "nodemon  ./src/index.js",
     "initDB": "node --env-file=.env src/initDb.js && exit"
-
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
