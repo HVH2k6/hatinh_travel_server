@@ -20,9 +20,13 @@ Cách chạy dự án ở localhost
 
 *   Clone dự án với git
 *   Cấu hình file .env
-*   Gỡ npm i ==> npm run dev
+*   Gõ npm i ==> npm run dev
 
 Liên hệ tác giả
 ---------------
 
 Telegram: [Click here](https://t.me/devtheworld)
+
+  
+
+Email: [Click here](joincript@gmail.com)
