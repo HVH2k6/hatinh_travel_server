@@ -9,17 +9,23 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon  ./src/index.js",
-    "initDB": "node --env-file=.env src/initDb.js && exit"
+    "initDB": "node --env-file=.env src/initDb.js && exit",
+    "dbht": "node --env-file=.env src/hatinh.js"
   },
   "dependencies": {
+    "@types/js-cookie": "^3.0.6",
+    "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
+    "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.17.0",
     "mongoose": "^8.16.1",
+    "mongoose-slug-generator": "^1.0.4",
+    "mongoose-slug-updater": "^3.3.0",
     "streamifier": "^0.1.1"
   },
   "devDependencies": {
