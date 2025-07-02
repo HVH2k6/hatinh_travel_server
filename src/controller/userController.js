@@ -49,6 +49,7 @@ const signIn = async (req, res) => {
       message: 'Login successful',
       access_token,
       refresh_token,
+      user
     });
   } catch (error) {
     console.log(error);
