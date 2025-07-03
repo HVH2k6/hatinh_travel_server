@@ -61,4 +61,4 @@ Telegram: [Click here](https://t.me/devtheworld)
 
   
 
-Email: [Click here](joincript@gmail.com)
+Email:joincript@gmail.com
