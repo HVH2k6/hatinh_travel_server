@@ -31,14 +31,15 @@ const signIn = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if(!password) {
+      return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không đúng' })
     }
+    
+   
 
     const isPasswordValid = bcrypt.compareSync(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid password' });
+    if (!isPasswordValid || !user) {
+      return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không đúng' });
     }
 
     // Tạo access token và refresh token sử dụng hàm có sẵn
@@ -60,7 +61,11 @@ const signIn = async (req, res) => {
 // Hàm lấy thông tin người dùng hiện tại
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password'); // Không trả mật khẩu
+    const user = await User.findById(req.user.id)
+      .select('-password')
+      .populate('roleId') // 👈 Lấy đầy đủ thông tin role theo ObjectId
+      .exec();
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -71,6 +76,7 @@ const getMe = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 const renewAccessToken = (req, res) => {
   const { refresh_token } = req.body; 
   console.log(" renewAccessToken ~ refresh_token:", refresh_token)
