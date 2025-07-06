@@ -3,7 +3,7 @@ const Type = require('../models/TypeModel');
 const getAllTypes = async (req, res) => {
   try {
     const types = await Type.find();
-    res.status(200).json(types);
+    res.status(200).json({ types: types });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

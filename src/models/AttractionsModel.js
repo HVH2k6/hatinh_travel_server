@@ -39,7 +39,7 @@ const attractionsSchema = new mongoose.Schema({
       default: '',
     },
   },
-  status: { type: Boolean, default: true },
+  status: String,
   isFree: { type: Boolean, default: false },
   isHot: { type: Boolean, default: false },
   minPrice: { type: Number, default: 0 },
@@ -49,10 +49,7 @@ const attractionsSchema = new mongoose.Schema({
     ref: 'User',
   },
   mapUrl: String,
-  openTime: {
-    type: Date,
-    default: Date.now,
-  },
+
   slug: { type: String, slug: 'name', unique: true },
   description: String,
   createdAt: { type: Date, default: Date.now },

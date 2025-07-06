@@ -12,7 +12,7 @@ const createAttraction = async (req, res) => {
       image,
 
       list_image,
-      address: addressString, // <- lấy string
+      address, // <- lấy string
       description,
       status,
       minPrice,
@@ -21,9 +21,8 @@ const createAttraction = async (req, res) => {
       isHot,
       mapUrl,
       openTime,
+      createdBy,
     } = req.body;
-
-    const address = JSON.parse(addressString);
 
     // Lưu thông tin Attraction mới vào database
     const attraction = await Attractions.create({
@@ -41,10 +40,10 @@ const createAttraction = async (req, res) => {
       isHot,
       mapUrl,
       openTime,
-      //   createdBy,  // Nếu bạn muốn lưu người tạo từ thông tin người dùng
+      createdBy, // Nếu bạn muốn lưu người tạo từ thông tin người dùng
     });
 
-    res.status(200).json({ attraction });
+    res.status(200).json({ message: 'Attraction created successfully', attraction });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -130,4 +129,4 @@ const update = async (req, res) => {
   }
 };
 
-module.exports = { createAttraction, getDetailAttraction , update};
+module.exports = { createAttraction, getDetailAttraction, update };
