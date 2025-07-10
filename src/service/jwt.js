@@ -24,12 +24,14 @@ const verifyToken = (req, res, next) => {
   }
 
   const token = authHeader.split(' ')[1];
+  console.log(" verifyToken ~ token:", token)
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Gắn thông tin user vào request
     next();
   } catch (err) {
+    console.error('Verify token error:', err);
     return res.status(401).json({ message: 'Token expired or invalid' });
   }
 };

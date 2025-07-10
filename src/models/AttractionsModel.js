@@ -41,14 +41,14 @@ const attractionsSchema = new mongoose.Schema({
   },
   status: String,
   isFree: { type: Boolean, default: false },
-  isHot: { type: Boolean, default: false },
+  // isHot: { type: Boolean, default: false },
   minPrice: { type: Number, default: 0 },
   maxPrice: { type: Number, default: 0 },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   },
-  mapUrl: String,
+  // mapUrl: String,
 
   slug: { type: String, slug: 'name', unique: true },
   description: String,

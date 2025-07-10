@@ -1,5 +1,13 @@
 const District = require('../models/DistrictModel');
 const Ward = require('../models/WardModel');
+const Province = require('../models/ProvinceModel');
+
+
+const getProvinces = async(req, res)=>{
+// get models province
+  const provinces = await Province.find()
+  res.json(provinces);
+}
 const getDistricts = async (req, res) => {
   try {
     const { province_code } = req.query;
@@ -26,4 +34,4 @@ const getWards = async (req, res) => {
     res.status(500).json({ message: 'Lỗi lấy danh sách xã' });
   }
 };
-module.exports = { getDistricts, getWards };
+module.exports = { getDistricts, getWards, getProvinces };

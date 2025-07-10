@@ -4,6 +4,8 @@ const { verifyToken } = require('../../service/jwt');
 
 const router = express.Router();
 
+router.get('/province', controller.getProvinces);
+
 router.get('/wards', controller.getWards);
 router.get('/districts', controller.getDistricts);
 
