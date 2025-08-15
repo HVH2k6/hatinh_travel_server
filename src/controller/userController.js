@@ -36,7 +36,7 @@ const signIn = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không đúng' });
     }
 
     const access_token = accessToken({ id: user._id });
@@ -73,7 +73,7 @@ const signIn = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };
 
