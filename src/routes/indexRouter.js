@@ -4,7 +4,7 @@ const typeRouter = require('./api/typeRouter');
 const attractionsRouter = require('./api/attractionsRouter');
 const addressRouter = require('./api/addressApi');
 const cloudRouter = require('./api/cloudRouter');
-
+const otpRouter = require('./api/otpRouter');
 module.exports = (app) => {
   app.use('/api/user', userRouter);
   app.use('/api/category', categoryRouter);
@@ -12,4 +12,5 @@ module.exports = (app) => {
   app.use('/api/attractions', attractionsRouter);
   app.use('/api/address', addressRouter);
   app.use('/api/cloud', cloudRouter);
+  app.use('/api/otp', otpRouter);
 };

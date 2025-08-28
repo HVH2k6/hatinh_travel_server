@@ -1,11 +1,12 @@
 const express = require('express');
 const controller = require('../../controller/userController');
 const { verifyToken } = require('../../service/jwt');
+const { verifyMiddleware } = require('../../controller/otpController');
 
 const router = express.Router();
 
 
-router.post('/sign-up', controller.signUp);
+router.post('/sign-up',verifyMiddleware, controller.signUp);
 
 
 router.post('/sign-in', controller.signIn);
