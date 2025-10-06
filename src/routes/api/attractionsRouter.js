@@ -8,6 +8,7 @@ router.post(
 
   controller.createAttraction
 );
+router.get('/detail/:slug', controller.detail);
 router.get('/update-detail/:id', controller.getDetailAttraction);
 router.patch(
   '/update/:id',

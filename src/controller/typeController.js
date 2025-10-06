@@ -1,11 +1,32 @@
 const Type = require('../models/TypeModel');
+const { paginate } = require('../helper/pagination');
 
 const getAllTypes = async (req, res) => {
-  try {
-    const types = await Type.find();
-    res.status(200).json({ types: types });
+  try{
+  const page = Number(req.query.page || 1); // Default page is 1
+    const limit = Number(req.query.limit || 10); // Default limit is 10
+
+
+
+    // Optional search by name
+    if (req.query.q) {
+      where.name = { $regex: String(req.query.q), $options: 'i' }; // Case-insensitive search
+    }
+
+    const result = await paginate({
+      model: Type,
+      page,
+      limit,
+     
+      populate: [], // If you want to populate specific fields, you can define them here
+      sort: { createdAt: -1 }, // Sort by createdAt in descending order
+      lean: true, // Use lean() for plain JS objects
+    });
+
+    return res.status(200).json(result); // Return paginated categories
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Lỗi phân trang Category:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 const createType = async (req, res) => {
