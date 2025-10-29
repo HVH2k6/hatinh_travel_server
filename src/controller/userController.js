@@ -36,7 +36,9 @@ const signIn = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ message: 'Tài khoản hoặc mật khẩu không đúng' });
+      return res
+        .status(401)
+        .json({ message: 'Tài khoản hoặc mật khẩu không đúng' });
     }
 
     const access_token = accessToken({ id: user._id });
@@ -81,7 +83,7 @@ const signIn = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const id = req.user?.id;
-    console.log(" getMe ~ id:", id)
+    console.log(' getMe ~ id:', id);
     const user = await User.findById(id).populate('roleId');
 
     if (!user) {
@@ -132,6 +134,15 @@ const renewAccessToken = (req, res) => {
       .json({ message: 'Refresh token expired or invalid' });
   }
 };
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find({}).populate('roleId');
+    res.status(200).json({ users });
+  } catch (err) {
+    console.error('getUsers error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 module.exports = {
   signUp,
@@ -139,4 +150,5 @@ module.exports = {
   getMe,
   logout,
   renewAccessToken,
+  getUsers
 };
