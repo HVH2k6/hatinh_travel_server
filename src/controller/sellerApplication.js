@@ -26,15 +26,20 @@ const createSellerApplication = async (req, res) => {
 
     const draft = req.body?.shopDraft || {};
     if (!draft?.name || !draft?.categoryId) {
-      return res
-        .status(400)
-        .json({ message: 'Thiếu thông tin shopDraft.name hoặc shopDraft.categoryId' });
+      return res.status(400).json({
+        message: 'Thiếu thông tin shopDraft.name hoặc shopDraft.categoryId',
+      });
     }
 
     // Chặn trùng pending
-    const existed = await SellerApplication.findOne({ userId, status: 'pending' });
+    const existed = await SellerApplication.findOne({
+      userId,
+      status: 'pending',
+    });
     if (existed) {
-      return res.status(409).json({ message: 'Bạn đã gửi hồ sơ, vui lòng chờ duyệt.' });
+      return res
+        .status(409)
+        .json({ message: 'Bạn đã gửi hồ sơ, vui lòng chờ duyệt.' });
     }
 
     const app = await SellerApplication.create({
@@ -68,14 +73,16 @@ const getSellerApplications = async (req, res) => {
       page,
       limit,
       where,
-      populate: POPULATE,         // <- đã khai báo
+      populate: POPULATE, // <- đã khai báo
       sort: { createdAt: -1 },
       lean: true,
     });
 
     res.json(apps); // nên return {items,total,page,limit} từ helper paginate
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi lấy danh sách hồ sơ', error: err.message });
+    res
+      .status(500)
+      .json({ message: 'Lỗi lấy danh sách hồ sơ', error: err.message });
   }
 };
 
@@ -86,13 +93,15 @@ const getSellerApplication = async (req, res) => {
   try {
     const { id } = req.params;
     const app = await SellerApplication.findById(id)
-      .populate(POPULATE)   // dùng POPULATE chung
+      .populate(POPULATE) // dùng POPULATE chung
       .lean();
 
     if (!app) return res.status(404).json({ message: 'Không tìm thấy hồ sơ' });
     res.json(app);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi lấy chi tiết hồ sơ', error: err.message });
+    res
+      .status(500)
+      .json({ message: 'Lỗi lấy chi tiết hồ sơ', error: err.message });
   }
 };
 
@@ -126,9 +135,18 @@ const approveSellerApplication = async (req, res) => {
     // await User.findByIdAndUpdate(app.userId, { $addToSet: { roles: 'seller' } }, { session });
     // Nếu dùng field đơn:
     const sellerRole = await getRolesByNames(['Seller']);
+    const adminRole = await getRolesByNames(['Admin']);
+    const currentRole = await User.findById(app.userId).populate('roleId');
+    const adminRoleId = adminRole.Admin._id;
+    const isAdmin = currentRole.roleId._id.equals(adminRoleId);
     const idSeller = sellerRole.Seller._id;
-    await User.findByIdAndUpdate(app.userId, { $set: { roleId: idSeller } }, { session });
-
+    if (!isAdmin) {
+      await User.findByIdAndUpdate(
+        app.userId,
+        { $set: { roleId: idSeller } },
+        { session }
+      );
+    }
     // Cập nhật hồ sơ
     app.status = 'approved';
     app.shopId = shopDoc._id;
@@ -154,11 +172,10 @@ const approveSellerApplication = async (req, res) => {
 const rejectSellerApplication = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("🚀 ~ rejectSellerApplication ~ id:", id)
-    const adminId = req.user?._id || null;
+    const adminId = req.user?.id || null;
 
     const app = await SellerApplication.findById(id);
-    if (!app || app.status !== 'pending') {
+    if (!app) {
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ pending' });
     }
 
@@ -179,16 +196,28 @@ const rejectSellerApplication = async (req, res) => {
  */
 const getMySellerApplication = async (req, res) => {
   try {
-    const userId = req.user?._id || req.query.userId;
+    const userId = req.user?.id || req.query.userId;
     if (!userId) return res.status(400).json({ message: 'Thiếu userId' });
+    const where = {
+      userId,
+    };
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
 
-    const apps = await SellerApplication.find({ userId })
-      .sort({ createdAt: -1 })
-      .lean();
-
+    const apps = await paginate({
+      model: SellerApplication,
+      page,
+      limit,
+      where,
+      populate: POPULATE, // <- đã khai báo
+      sort: { createdAt: -1 },
+      lean: true,
+    });
     res.json(apps);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi lấy hồ sơ của bạn', error: err.message });
+    res
+      .status(500)
+      .json({ message: 'Lỗi lấy hồ sơ của bạn', error: err.message });
   }
 };
 

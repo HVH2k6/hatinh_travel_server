@@ -5,7 +5,9 @@ const attractionsRouter = require('./api/attractionsRouter');
 const addressRouter = require('./api/addressApi');
 const cloudRouter = require('./api/cloudRouter');
 const otpRouter = require('./api/otpRouter');
+const shopRouter = require('./api/shopRouter');
 const sellerApplicationRouter = require('./api/sellerapplicationRouter');
+const productRouter = require('./api/productRouter');
 module.exports = (app) => {
   app.use('/api/user', userRouter);
   app.use('/api/category', categoryRouter);
@@ -14,5 +16,7 @@ module.exports = (app) => {
   app.use('/api/address', addressRouter);
   app.use('/api/cloud', cloudRouter);
   app.use('/api/otp', otpRouter);
+  app.use('/api/shop', shopRouter);
   app.use('/api/sellerapplication', sellerApplicationRouter);
+  app.use('/api/product', productRouter);
 };
