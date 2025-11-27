@@ -129,6 +129,18 @@ const getShopById = async (req, res) => {
       .json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
   }
 };
+const getShopBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const shop = await Shop.findOne({ slug }).populate(POPULATE).lean();
+    if (!shop) return res.status(404).json({ message: 'Không tìm thấy shop' });
+    res.json(shop);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
+  }
+};
 const update = async (req, res) => {
   try {
     const { id } = req.params;
@@ -209,11 +221,56 @@ const update = async (req, res) => {
     res.status(500).json({ message: 'Lỗi cập nhật shop', error: err.message });
   }
 };
+const deletedShop = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id || req.query.userId; // Lấy ID người đang thao tác
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Bạn chưa đăng nhập' });
+    }
+
+    // 1. Tìm Shop theo ID trước (Chưa quan tâm ai sở hữu)
+    const shop = await Shop.findById(id);
+
+    if (!shop) {
+      return res.status(404).json({ message: 'Shop không tồn tại' });
+    }
+
+    // 2. CHECK QUYỀN: Là chủ sở hữu HOẶC là Admin
+    const isOwner = shop.sellerId && shop.sellerId.toString() === userId.toString();
+
+    // Nếu KHÔNG phải chủ shop, thì mới bắt đầu kiểm tra xem có phải Admin không
+    if (!isOwner) {
+      const checkInfoUser = await User.findById(userId).populate('roleId');
+      
+      // Phòng trường hợp user lỗi hoặc không có role
+      if (!checkInfoUser || !checkInfoUser.roleId) {
+          return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
+      }
+
+      const getRoleId = checkInfoUser.roleId._id;
+      const roleUser = await getRolesByNames(['Admin']);
+      const roleAdminId = roleUser.Admin._id;
+
+      // Nếu không phải Admin -> Chặn luôn
+      if (!getRoleId.equals(roleAdminId)) {
+        return res.status(403).json({ message: 'Bạn không phải chủ shop và cũng không phải Admin' });
+      }
+    }
+    await Shop.deleteOne({ _id: id });
+    res.json({ message: 'Xóa shop thành công' });
+  } catch (error) {
+    console.log(error);
+  }
+};
 module.exports = {
   getMyShops,
   getMyShopById,
+  getShopBySlug,
   // Tuỳ chọn:
   getShops,
   getShopById,
   update,
+  deletedShop
 };

@@ -1,13 +1,16 @@
 const mongoose = require('mongoose');
 const STATUS = ['ACTIVE', 'PENDING', 'DELETED'];
 const { Schema, Types } = mongoose;
+const slug = require('mongoose-slug-updater');
 
+mongoose.plugin(slug);
 const ShopSchema = new mongoose.Schema({
   name: { type: String },
   description: { type: String },
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   sellerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   image: { type: String },
+  slug: { type: String, slug: 'name', unique: true },
   address: {
     provinceId: { type: Types.ObjectId, ref: 'Province', required: true },
     districtId: { type: Types.ObjectId, ref: 'District', required: true },

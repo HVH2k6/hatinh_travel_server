@@ -9,7 +9,11 @@ const productSchema = new mongoose.Schema({
   description: String,
   image: String,
   list_image: { type: [String], default: [] },
-
+  unitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Unit',
+    required: true,
+  },
   shopId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop' },
   createdAt: { type: Date, default: Date.now },
 });

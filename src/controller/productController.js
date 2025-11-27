@@ -1,3 +1,4 @@
+const { paginate } = require('../helper/pagination');
 const Product = require('../models/ProductModel');
 
 const normalizeListImages = (list) => {
@@ -30,6 +31,7 @@ const create = async (req, res) => {
     list_image,
     contact,
     shopId,
+    unitId,
   } = req.body;
 
   try {
@@ -41,6 +43,7 @@ const create = async (req, res) => {
       list_image: normalizeListImages(list_image),
       contact,
       shopId,
+      unitId,
     });
     res.status(200).json(product);
   } catch (error) {
@@ -55,11 +58,28 @@ const getAll = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+  const POPULATE = [
+      { path: 'shopId', select: 'name contact' },
+      { path: 'unitId', select: 'name symbol' },
+    ];
 const getAllByShopId = async (req, res) => {
   try {
     const { id } = req.params;
-    const products = await Product.find({ shopId: id }).populate('shopId');
-    res.status(200).json(products);
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
+    const where = { shopId: id };
+  
+
+    const result = await paginate({
+      model: Product,
+      page,
+      limit,
+      where,
+      populate: POPULATE,
+      sort: { createdAt: -1 },
+      lean: true,
+    });
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -67,7 +87,17 @@ const getAllByShopId = async (req, res) => {
 const detail = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id).populate('shopId');
+    const product = await Product.findById(id).populate(POPULATE);
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+const detailBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const product = await Product.findOne({ slug }).populate(POPULATE);
+    if(!product) return res.status(404).json({ message: 'Product not found' });
     res.status(200).json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -76,7 +106,7 @@ const detail = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, image, list_image, contact } = req.body;
+    const { name, description, price, image, list_image, contact , unitId} = req.body;
     const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -87,6 +117,8 @@ const update = async (req, res) => {
     if (image) product.image = image;
     if (list_image) product.list_image = normalizeListImages(list_image);
     if (contact) product.contact = contact;
+    if (unitId) product.unitId = unitId;
+    
     await product.save();
     res.status(200).json(product);
   } catch (error) {
@@ -96,6 +128,7 @@ const update = async (req, res) => {
 const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('🚀 ~ deleteProduct ~ id:', id);
     const product = await Product.findById(id);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
@@ -105,5 +138,13 @@ const deleteProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-}
-module.exports = { create, getAll, getAllByShopId, detail, update, deleteProduct };
+};
+module.exports = {
+  create,
+  getAll,
+  getAllByShopId,
+  detail,
+  update,
+  deleteProduct,
+  detailBySlug
+};

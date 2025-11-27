@@ -8,6 +8,7 @@ const otpRouter = require('./api/otpRouter');
 const shopRouter = require('./api/shopRouter');
 const sellerApplicationRouter = require('./api/sellerapplicationRouter');
 const productRouter = require('./api/productRouter');
+const unitRouter = require('./api/unitApi');
 module.exports = (app) => {
   app.use('/api/user', userRouter);
   app.use('/api/category', categoryRouter);
@@ -19,4 +20,5 @@ module.exports = (app) => {
   app.use('/api/shop', shopRouter);
   app.use('/api/sellerapplication', sellerApplicationRouter);
   app.use('/api/product', productRouter);
+  app.use('/api/unit', unitRouter);
 };

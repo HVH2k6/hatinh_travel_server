@@ -9,11 +9,12 @@ router.get('/me/shops',verifyToken, controller.getMyShops);
 
 // Seller xem chi tiết 1 shop của chính mình (kèm check sở hữu)
 router.get('/me/shops/:id',verifyToken, controller.getMyShopById);
-
 // (tuỳ chọn) Admin/Client xem danh sách shop (có phân trang, lọc)
-router.get('/shops', verifyToken, checkAdmin, controller.getShops);
+router.get('/shops', controller.getShops);
 // (tuỳ chọn) Xem chi tiết 1 shop cụ thể (admin hoặc public nếu policy cho phép)
 router.get('/shops/:id', controller.getShopById);
+router.get('/shop-detail/:slug', controller.getShopBySlug);
 router.patch('/update/:id', verifyToken, controller.update);
+router.delete('/delete/:id', verifyToken, controller.deletedShop);
 
 module.exports = router;
