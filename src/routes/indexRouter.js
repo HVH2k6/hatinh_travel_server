@@ -11,8 +11,10 @@ const productRouter = require('./api/productRouter');
 const unitRouter = require('./api/unitApi');
 const foodRouter = require('./api/foodApiRouter');
 const artRouter = require('./api/artRouter');
-const reviewRouter = require('./api/reviewRouter');
+const reviewRouter = require('./api/reviewRouter');z
+const homeRouter = require('./api/homeRouter');
 module.exports = (app) => {
+  app.use('/', homeRouter);
   app.use('/api/user', userRouter);
   app.use('/api/category', categoryRouter);
   app.use('/api/type', typeRouter);
