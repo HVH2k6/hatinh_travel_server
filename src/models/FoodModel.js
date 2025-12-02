@@ -12,9 +12,13 @@ const foodSchema = new mongoose.Schema({
   price: Number,
 
   address: {
-    provinceId: { type: Types.ObjectId, ref: 'Province', required: true },
-    districtId: { type: Types.ObjectId, ref: 'District', required: true },
-    wardId: { type: Types.ObjectId, ref: 'Ward', required: true },
+    provinceId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Province',
+      required: true,
+    },
+    districtId: { type: mongoose.Types.ObjectId, ref: 'District', required: true },
+    wardId: { type: mongoose.Types.ObjectId, ref: 'Ward', required: true },
     detail: { type: String, default: '', trim: true },
   },
   slug: { type: String, slug: 'name', unique: true },
