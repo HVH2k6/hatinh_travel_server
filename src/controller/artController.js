@@ -103,6 +103,7 @@ const update = async (req, res) => {
     const data = req.body;
 
     const art = await Art.findById(id);
+    console.log("🚀 ~ update ~ art:", art)
     if (data.name !== undefined) art.name = data.name;
     if (data.image !== undefined) art.image = data.image;
     if (data.list_image !== undefined)
@@ -111,6 +112,7 @@ const update = async (req, res) => {
     if (data.video_url !== undefined) art.video_url = data.video_url;
     if (data.categoryId !== undefined)
       art.categoryId = toObjectId(data.categoryId);
+    if (data.description !== undefined) art.description = data.description;
     if (!art) {
       return res.status(404).json({ message: 'Art not found' });
     }
