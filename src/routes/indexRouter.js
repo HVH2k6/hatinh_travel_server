@@ -13,6 +13,7 @@ const foodRouter = require('./api/foodApiRouter');
 const artRouter = require('./api/artRouter');
 const reviewRouter = require('./api/reviewRouter');
 const homeRouter = require('./api/homeRouter');
+const chatBotRouter = require('./api/chatBotRouter');
 module.exports = (app) => {
   app.use('/', homeRouter);
   app.use('/api/user', userRouter);
@@ -31,4 +32,5 @@ module.exports = (app) => {
   app.use('/api/art', artRouter);
 
   app.use('/api/review', reviewRouter);
+  app.use('/api/ai', chatBotRouter);
 };
