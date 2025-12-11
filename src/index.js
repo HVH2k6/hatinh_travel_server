@@ -13,10 +13,15 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
-// Kết nối DB (Lưu ý: Trên Vercel nên dùng connection pool thay vì connect đơn lẻ nếu traffic cao)
-connection.connect(); 
-
+app.use(async (req, res, next) => {
+    try {
+        await dbConnect(); // Kết nối (hoặc dùng lại kết nối cũ)
+        next(); // Cho phép đi tiếp vào Controller
+    } catch (error) {
+        console.error("Lỗi kết nối DB:", error);
+        res.status(500).json({ message: "Database Connection Failed" });
+    }
+})
 route(app);
 
 // --- PHẦN QUAN TRỌNG NHẤT CẦN SỬA ---
