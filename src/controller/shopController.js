@@ -2,34 +2,52 @@ const Shop = require('../models/ShopModel');
 const { paginate } = require('../helper/pagination');
 const { getRolesByNames } = require('../config/constant');
 const User = require('../models/UserModel');
+const mongoose = require('mongoose'); // Cần thêm để validate ID
 
+// --- HELPER ---
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+const toObjectId = (id) => (isValidId(id) ? new mongoose.Types.ObjectId(id) : null);
+
+// 1. POPULATE: Bỏ districtId
 const POPULATE = [
   { path: 'categoryId', select: 'name slug' },
   { path: 'sellerId', select: 'username email' },
   { path: 'address.provinceId', select: 'name codename' },
-  { path: 'address.districtId', select: 'name codename' },
+  // { path: 'address.districtId', select: 'name codename' }, // Đã bỏ
   { path: 'address.wardId', select: 'name codename' },
 ];
 
 /**
+ * Helper build lại address để đảm bảo sạch data (không dính district cũ)
+ */
+const buildAddress = (newAddr, oldAddr = {}) => {
+  return {
+    provinceId: toObjectId(newAddr.provinceId) || oldAddr.provinceId,
+    wardId: toObjectId(newAddr.wardId) || oldAddr.wardId,
+    detail: (newAddr.detail || oldAddr.detail || '').trim(),
+  };
+};
+
+/**
  * GET /me/shops
- * Lấy danh sách shop của chính user (seller). Hỗ trợ:
- *  - query: page, limit, status
- *  - lấy userId từ req.user._id (nếu có middleware), fallback query.userId
+ * Lấy danh sách shop của chính user
  */
 const getMyShops = async (req, res) => {
   try {
     const userId = req.user?.id || req.query.userId;
-    console.log('🚀 ~ update ~ userId:', userId);
-    console.log('🚀 ~ update ~ userId:', userId);
     if (!userId) return res.status(400).json({ message: 'Thiếu userId' });
 
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 10);
-    const { status } = req.query; // ví dụ: ACTIVE | INACTIVE | DELETED (tuỳ enum của Shop)
+    const { status, provinceId } = req.query;
 
     const where = { sellerId: userId };
     if (status) where.status = status;
+    
+    // Thêm lọc theo Tỉnh
+    if (provinceId && isValidId(provinceId)) {
+        where['address.provinceId'] = toObjectId(provinceId);
+    }
 
     const result = await paginate({
       model: Shop,
@@ -43,15 +61,12 @@ const getMyShops = async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: 'Lỗi lấy danh sách shop của bạn', error: err.message });
+    res.status(500).json({ message: 'Lỗi lấy danh sách shop của bạn', error: err.message });
   }
 };
 
 /**
  * GET /me/shops/:id
- * Lấy chi tiết một shop của chính user (check sở hữu).
  */
 const getMyShopById = async (req, res) => {
   try {
@@ -59,42 +74,42 @@ const getMyShopById = async (req, res) => {
     if (!userId) return res.status(400).json({ message: 'Thiếu userId' });
 
     const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ message: 'ID không hợp lệ' });
 
-    const shop = await Shop.findOne({ _id: id, sellerId: userId,status:'ACTIVE' })
+    const shop = await Shop.findOne({ _id: id, sellerId: userId }) // Bỏ status: 'ACTIVE' để chủ shop vẫn xem được shop đang chờ/bị ẩn
       .populate(POPULATE)
       .lean();
 
     if (!shop) {
-      return res
-        .status(404)
-        .json({
-          message:
-            'Không tìm thấy shop của bạn hoặc bạn không có quyền truy cập',
-        });
+      return res.status(404).json({
+        message: 'Không tìm thấy shop của bạn hoặc bạn không có quyền truy cập',
+      });
     }
 
     res.json(shop);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
+    res.status(500).json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
   }
 };
 
-/* ===== (Tuỳ chọn) Dành cho admin/public nếu cần ===== */
+/* ===== PUBLIC / ADMIN ===== */
 
 const getShops = async (req, res) => {
   try {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 10);
-    const { status, sellerId, categoryId, q } = req.query;
+    const { status, sellerId, categoryId, q, provinceId } = req.query;
 
     const where = {};
     if (status) where.status = status;
-    if (sellerId) where.sellerId = sellerId;
-    if (categoryId) where.categoryId = categoryId;
+    if (sellerId && isValidId(sellerId)) where.sellerId = sellerId;
+    if (categoryId && isValidId(categoryId)) where.categoryId = categoryId;
 
-    // tìm kiếm đơn giản theo tên
+    // Lọc theo Tỉnh (Thay thế huyện)
+    if (provinceId && isValidId(provinceId)) {
+        where['address.provinceId'] = toObjectId(provinceId);
+    }
+
     if (q) {
       where.name = { $regex: q.trim(), $options: 'i' };
     }
@@ -111,24 +126,24 @@ const getShops = async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: 'Lỗi lấy danh sách shop', error: err.message });
+    res.status(500).json({ message: 'Lỗi lấy danh sách shop', error: err.message });
   }
 };
 
 const getShopById = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ message: 'ID không hợp lệ' });
+
     const shop = await Shop.findById(id).populate(POPULATE).lean();
     if (!shop) return res.status(404).json({ message: 'Không tìm thấy shop' });
+    
     res.json(shop);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
+    res.status(500).json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
   }
 };
+
 const getShopBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -136,82 +151,68 @@ const getShopBySlug = async (req, res) => {
     if (!shop) return res.status(404).json({ message: 'Không tìm thấy shop' });
     res.json(shop);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
+    res.status(500).json({ message: 'Lỗi lấy chi tiết shop', error: err.message });
   }
 };
+
+/* ===== UPDATE ===== */
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id || req.query.userId; // Lấy ID người đang thao tác
+    const userId = req.user?.id || req.query.userId;
 
-    if (!userId) {
-      return res.status(401).json({ message: 'Bạn chưa đăng nhập' });
-    }
+    if (!userId) return res.status(401).json({ message: 'Bạn chưa đăng nhập' });
+    if (!isValidId(id)) return res.status(400).json({ message: 'ID Shop không hợp lệ' });
 
-    // 1. Tìm Shop theo ID trước (Chưa quan tâm ai sở hữu)
+    // 1. Tìm Shop
     const shop = await Shop.findById(id);
+    if (!shop) return res.status(404).json({ message: 'Shop không tồn tại' });
 
-    if (!shop) {
-      return res.status(404).json({ message: 'Shop không tồn tại' });
-    }
-
-    // 2. CHECK QUYỀN: Là chủ sở hữu HOẶC là Admin
+    // 2. CHECK QUYỀN
     const isOwner = shop.sellerId && shop.sellerId.toString() === userId.toString();
 
-    // Nếu KHÔNG phải chủ shop, thì mới bắt đầu kiểm tra xem có phải Admin không
     if (!isOwner) {
       const checkInfoUser = await User.findById(userId).populate('roleId');
-      
-      // Phòng trường hợp user lỗi hoặc không có role
       if (!checkInfoUser || !checkInfoUser.roleId) {
-          return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
+        return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
       }
-
-      const getRoleId = checkInfoUser.roleId._id;
+      
       const roleUser = await getRolesByNames(['Admin']);
-      const roleAdminId = roleUser.Admin._id;
-
-      // Nếu không phải Admin -> Chặn luôn
-      if (!getRoleId.equals(roleAdminId)) {
-        return res.status(403).json({ message: 'Bạn không phải chủ shop và cũng không phải Admin' });
+      // So sánh ObjectId
+      if (!checkInfoUser.roleId._id.equals(roleUser.Admin._id)) {
+        return res.status(403).json({ message: 'Bạn không có quyền sửa shop này' });
       }
     }
-    // Nếu code chạy xuống được đây thì tức là: Hoặc là Owner, Hoặc là Admin.
 
-    // 3. UPDATE DATA (Logic Patch)
+    // 3. UPDATE DATA
     const data = req.body;
 
     if (data.name) shop.name = data.name;
     if (data.description) shop.description = data.description;
     if (data.image) shop.image = data.image;
-    if (data.categoryId) shop.categoryId = data.categoryId;
+    if (data.categoryId && isValidId(data.categoryId)) shop.categoryId = data.categoryId;
 
     if (data.status && ['ACTIVE', 'PENDING', 'DELETED'].includes(data.status)) {
       shop.status = data.status;
     }
 
-    // Update Nested Object (Merge data)
+    // Merge Contact
     if (data.contact) {
-      shop.contact = {
-        ...shop.contact,
-        ...data.contact 
-      };
+      shop.contact = { ...shop.contact, ...data.contact };
     }
 
+    // Update Address (Quan trọng: Xử lý bỏ districtId)
     if (data.address) {
-      shop.address = {
-        ...shop.address, 
-        ...data.address 
-      };
+      // Gọi hàm buildAddress để tạo object mới chỉ gồm province, ward, detail
+      shop.address = buildAddress(data.address, shop.address);
     }
 
     shop.updatedAt = Date.now();
-
     await shop.save();
 
-    // 4. Trả về kết quả (Chỉ 1 lần duy nhất)
+    // Populate để trả về data đẹp
+    await shop.populate(POPULATE);
+
     res.json(shop);
     
   } catch (err) {
@@ -221,56 +222,49 @@ const update = async (req, res) => {
     res.status(500).json({ message: 'Lỗi cập nhật shop', error: err.message });
   }
 };
+
+/* ===== DELETE ===== */
 const deletedShop = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id || req.query.userId; // Lấy ID người đang thao tác
+    const userId = req.user?.id || req.query.userId;
 
-    if (!userId) {
-      return res.status(401).json({ message: 'Bạn chưa đăng nhập' });
-    }
+    if (!userId) return res.status(401).json({ message: 'Bạn chưa đăng nhập' });
+    if (!isValidId(id)) return res.status(400).json({ message: 'ID Shop không hợp lệ' });
 
-    // 1. Tìm Shop theo ID trước (Chưa quan tâm ai sở hữu)
     const shop = await Shop.findById(id);
+    if (!shop) return res.status(404).json({ message: 'Shop không tồn tại' });
 
-    if (!shop) {
-      return res.status(404).json({ message: 'Shop không tồn tại' });
-    }
-
-    // 2. CHECK QUYỀN: Là chủ sở hữu HOẶC là Admin
+    // Check Quyền
     const isOwner = shop.sellerId && shop.sellerId.toString() === userId.toString();
 
-    // Nếu KHÔNG phải chủ shop, thì mới bắt đầu kiểm tra xem có phải Admin không
     if (!isOwner) {
       const checkInfoUser = await User.findById(userId).populate('roleId');
-      
-      // Phòng trường hợp user lỗi hoặc không có role
       if (!checkInfoUser || !checkInfoUser.roleId) {
           return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
       }
 
-      const getRoleId = checkInfoUser.roleId._id;
       const roleUser = await getRolesByNames(['Admin']);
-      const roleAdminId = roleUser.Admin._id;
-
-      // Nếu không phải Admin -> Chặn luôn
-      if (!getRoleId.equals(roleAdminId)) {
-        return res.status(403).json({ message: 'Bạn không phải chủ shop và cũng không phải Admin' });
+      if (!checkInfoUser.roleId._id.equals(roleUser.Admin._id)) {
+        return res.status(403).json({ message: 'Bạn không có quyền xóa shop này' });
       }
     }
+
+    // Thực hiện xoá
     await Shop.deleteOne({ _id: id });
     res.json({ message: 'Xóa shop thành công' });
   } catch (error) {
-    console.log(error);
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi server khi xóa shop' });
   }
 };
+
 module.exports = {
   getMyShops,
   getMyShopById,
-  getShopBySlug,
-  // Tuỳ chọn:
   getShops,
   getShopById,
+  getShopBySlug,
   update,
   deletedShop
 };

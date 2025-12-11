@@ -19,7 +19,7 @@ const attractionsSchema = new Schema(
 
     address: {
       provinceId: { type: Types.ObjectId, ref: 'Province', required: true },
-      districtId: { type: Types.ObjectId, ref: 'District', required: true },
+      
       wardId: { type: Types.ObjectId, ref: 'Ward', required: true },
       detail: { type: String, default: '', trim: true },
     },

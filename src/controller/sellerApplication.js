@@ -11,7 +11,7 @@ const POPULATE = [
   { path: 'userId', select: 'username email role' },
   { path: 'shopDraft.categoryId', select: 'name slug' },
   { path: 'shopDraft.address.provinceId', select: 'name codename' },
-  { path: 'shopDraft.address.districtId', select: 'name codename' },
+  
   { path: 'shopDraft.address.wardId', select: 'name codename' },
 ];
 

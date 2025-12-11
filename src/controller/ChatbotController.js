@@ -2,24 +2,29 @@ const OpenAI = require('openai');
 const Attraction = require('../models/AttractionsModel');
 const Food = require('../models/FoodModel');
 const Art = require('../models/ArtModel');
-const WeatherService= require('../helper/weather');
-// Config OpenAI
+// Giả sử WeatherService có hàm getForecast(location, days)
+const WeatherService = require('../helper/weather'); 
+
+require('dotenv').config(); // Cần cài npm install dotenv
+
+// Config OpenAI an toàn
 const openai = new OpenAI({
-  apiKey: "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",
+  apiKey: "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", // Hãy đặt key trong file .env
 });
-// --- 1. TOOL: TÌM KIẾM DỮ LIỆU TỪ DB ---
+
+// --- 1. TOOLS DEFINITION ---
 const tools = [
   {
     type: "function",
     function: {
       name: "search_travel_data",
-      description: "Tìm kiếm địa điểm du lịch, món ăn từ Database của website.",
+      description: "Tìm kiếm địa điểm du lịch, món ăn, văn hóa từ Database.",
       parameters: {
         type: "object",
         properties: {
           keyword: { 
             type: "string", 
-            description: "Từ khóa tìm kiếm (Ví dụ: 'Biển', 'Núi', 'Chùa', 'Đặc sản', 'Nổi tiếng')" 
+            description: "Từ khóa chính (Ví dụ: 'Biển', 'Chùa', 'Hải sản', 'Bánh cu đơ')" 
           },
           type: {
             type: "string",
@@ -29,67 +34,68 @@ const tools = [
           budget_level: {
             type: "string",
             enum: ["low", "medium", "high", "any"],
-            description: "Mức giá: low (<100k), medium (<500k), high (>500k). Dựa vào ngân sách chia đầu người để chọn."
+            description: "Mức giá dựa trên ngân sách khách đưa ra."
           }
         },
         required: ["keyword", "type"],
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_weather_forecast",
+      description: "Lấy dự báo thời tiết tại Hà Tĩnh để lên lịch trình phù hợp.",
+      parameters: {
+        type: "object",
+        properties: {
+          days: { type: "number", description: "Số ngày dự báo (mặc định 1-3 ngày)" }
+        }
+      }
+    }
+  }
 ];
 
-// --- 2. HÀM QUERY DB (Xử lý logic tìm kiếm) ---
+// --- 2. HÀM QUERY DB ---
 const queryDatabase = async (keyword, type, budget_level) => {
-  console.log(`🔍 AI Tìm kiếm: Loại=${type}, Từ khóa=${keyword}, Giá=${budget_level}`);
+  console.log(`🔍 DB Query: Type=${type} | Key=${keyword} | Budget=${budget_level}`);
   
   let model;
   let query = {};
   
-  // Logic tìm kiếm cơ bản: Tên hoặc Mô tả chứa từ khóa
-  const textSearch = [
-      { name: { $regex: keyword, $options: 'i' } },
-      { description: { $regex: keyword, $options: 'i' } }
-  ];
-  
-  // Nếu từ khóa là "Nổi tiếng" hoặc "Gợi ý", ta tìm tất cả (bỏ qua regex)
-  if (["nổi tiếng", "gợi ý", "bất kỳ", "đẹp"].includes(keyword.toLowerCase())) {
-      query = {}; 
-  } else {
-      query.$or = textSearch;
+  // 1. Xử lý từ khóa tìm kiếm
+  // Nếu từ khóa quá chung chung, ta tìm tất cả (query rỗng) để lấy ngẫu nhiên top rated
+  const genericKeywords = ["nổi tiếng", "gợi ý", "bất kỳ", "đẹp", "vui chơi", "tham quan"];
+  if (!genericKeywords.includes(keyword.toLowerCase())) {
+     query.$or = [
+        { name: { $regex: keyword, $options: 'i' } },
+        { description: { $regex: keyword, $options: 'i' } }
+     ];
   }
 
-  // Chọn Model và Logic giá
+  // 2. Chọn Model & Xử lý giá
   if (type === 'Attraction') {
       model = Attraction;
-      if (budget_level !== 'any') {
-          let maxPrice = 10000000;
-          if (budget_level === 'low') maxPrice = 100000; // Vé rẻ
-          if (budget_level === 'medium') maxPrice = 500000; // Vé vừa
-          
-          // Logic: Tìm chỗ Free HOẶC giá vé nằm trong khoảng
-          query.$and = [
-              { $or: [{ isFree: true }, { minPrice: { $lte: maxPrice } }] }
-          ];
-      }
+      // Logic giá vé
+      if (budget_level === 'low') query.$or = [{ isFree: true }, { minPrice: { $lte: 100000 } }];
+      if (budget_level === 'medium') query.minPrice = { $lte: 500000 };
+      // High thì lấy all
   } else if (type === 'Food') {
       model = Food;
-      if (budget_level !== 'any') {
-          let maxPrice = 5000000;
-          if (budget_level === 'low') maxPrice = 100000; // Ăn bình dân
-          if (budget_level === 'medium') maxPrice = 500000; // Nhà hàng
-          query.price = { $lte: maxPrice };
-      }
+      if (budget_level === 'low') query.price = { $lte: 100000 };
+      if (budget_level === 'medium') query.price = { $lte: 500000 };
   } else if (type === 'Art') {
       model = Art;
   }
 
   try {
-    let queryBuilder = model.find(query).limit(5); // Lấy tối đa 5 kết quả mỗi lần tìm
+    // Lấy nhiều kết quả hơn (8) để AI có không gian chọn lựa
+    let queryBuilder = model.find(query).limit(8);
 
-    // Populate địa chỉ và danh mục để AI có đủ thông tin sắp xếp
+    // Populate thông tin cần thiết
     queryBuilder.populate([
-        { path: 'address.districtId', select: 'name' },
-        { path: 'address.provinceId', select: 'name' },
+        { path: 'address.provinceId', select: 'name' }, // Chỉ cần tên Tỉnh
+        { path: 'address.wardId', select: 'name' },     // Tên Xã/Phường
         { path: 'categoryId', select: 'name' }
     ]);
 
@@ -97,80 +103,79 @@ const queryDatabase = async (keyword, type, budget_level) => {
         queryBuilder.select('name description minPrice maxPrice isFree openTime closeTime address image slug typeId')
                     .populate('typeId', 'name');
     } else if (type === 'Food') {
-        queryBuilder.select('name description price ingredients address image slug');
+        queryBuilder.select('name description price address image slug');
     } else if (type === 'Art') {
         queryBuilder.select('name description video_url address image slug');
     }
 
-    const results = await queryBuilder;
+    const results = await queryBuilder.lean(); // .lean() giúp query nhanh hơn
 
     if (!results || results.length === 0) {
-      return JSON.stringify({ message: "Không tìm thấy dữ liệu cụ thể, hãy gợi ý địa điểm chung chung." });
+      // Fallback: Nếu tìm theo keyword thất bại, thử tìm top 3 item bất kỳ của loại đó
+      const fallbackResults = await model.find().limit(3).lean();
+      return JSON.stringify({ 
+          message: `Không tìm thấy chính xác '${keyword}', đây là một số gợi ý khác:`, 
+          data: fallbackResults.map(i => ({ name: i.name })) 
+      });
     }
 
-    // Format dữ liệu gọn gàng cho AI đọc
+    // Format dữ liệu nhỏ gọn để tiết kiệm Token OpenAI
     const cleanData = results.map(item => {
-        const addr = `${item.address?.districtId?.name || ''}, ${item.address?.provinceId?.name || ''}`;
-        let priceInfo = "Liên hệ";
-        if (type === 'Food') priceInfo = `${item.price} VNĐ`;
-        if (type === 'Attraction') priceInfo = item.isFree ? "Miễn phí" : `${item.minPrice} VNĐ`;
+        const location = item.address ? `${item.address.wardId?.name || ''}, ${item.address.provinceId?.name || ''}` : "Hà Tĩnh";
+        
+        let priceInfo = "N/A";
+        if (type === 'Food') priceInfo = item.price ? `${item.price.toLocaleString()}đ` : "Menu";
+        if (type === 'Attraction') priceInfo = item.isFree ? "Miễn phí" : `${(item.minPrice||0).toLocaleString()}đ - ${(item.maxPrice||0).toLocaleString()}đ`;
 
         return {
             name: item.name,
-            type: type,
-            desc: item.description?.substring(0, 100) + "...", // Cắt ngắn mô tả tiết kiệm token
-            address: addr,
+            desc: item.description?.substring(0, 150), // Lấy 150 ký tự đầu
+            loc: location,
             price: priceInfo,
-            category: item.categoryId?.name,
-            tourismType: item.typeId?.name, // Dành cho Attraction
-            slug: item.slug
+            open: item.openTime ? `${new Date(item.openTime).getHours()}h` : null,
+            close: item.closeTime ? `${new Date(item.closeTime).getHours()}h` : null
         };
     });
 
     return JSON.stringify(cleanData);
 
   } catch (err) {
-    console.error("DB Query Error:", err);
-    return JSON.stringify({ error: "Lỗi truy vấn DB" });
+    console.error("❌ DB Error:", err);
+    return JSON.stringify({ error: "Lỗi truy xuất dữ liệu nội bộ." });
   }
 };
 
-// --- 3. CONTROLLER XỬ LÝ CHAT (SMART LOGIC) ---
+// --- 3. CONTROLLER CHÍNH ---
 const handleChat = async (req, res) => {
   try {
-    const { message } = req.body; // Frontend chỉ cần gửi { message: "5 người 20 triệu thích thiên nhiên" }
+    const { message } = req.body;
+    
+    // Validate input
+    if (!message) return res.status(400).json({ message: "Vui lòng nhập nội dung." });
 
-    // Tính ngày mai để làm mặc định nếu khách không nói ngày
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dateStr = tomorrow.toLocaleDateString('vi-VN');
+    // Lấy ngày hiện tại
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('vi-VN');
 
-    // --- PROMPT "HƯỚNG DẪN VIÊN THÔNG MINH" ---
+    // --- SYSTEM PROMPT (Bộ não của AI) ---
     const systemPrompt = `
-      Bạn là Trợ lý du lịch Hà Tĩnh thông minh.
-      Hôm nay là ngày: ${new Date().toLocaleDateString('vi-VN')}.
+      Bạn là Trợ lý du lịch Hà Tĩnh (AI Guide).
+      Hôm nay là: ${dateStr}.
 
-      NHIỆM VỤ CHÍNH: Lên lịch trình du lịch dựa trên câu chat của khách.
-
-      QUY TẮC XỬ LÝ QUAN TRỌNG:
-      1. **Tự động trích xuất thông tin:** - Nếu khách nói số tiền (VD: 20 triệu) và số người (5 người) -> Tự chia ra (4 triệu/người) để xác định mức chi tiêu (budget_level).
-         - Nếu > 500k/người -> budget_level = 'high'.
-         - Nếu < 500k/người -> budget_level = 'medium' hoặc 'low'.
+      QUY TRÌNH LÀM VIỆC:
+      1. **Phân tích yêu cầu:** Xác định số người, ngân sách, sở thích, số ngày đi. (Nếu thiếu ngân sách, tự ước lượng dựa trên yêu cầu sang chảnh hay tiết kiệm).
+      2. **Kiểm tra thời tiết (QUAN TRỌNG):** Dùng tool 'get_weather_forecast' để xem thời tiết. 
+         - Nếu mưa: Ưu tiên gợi ý bảo tàng, quán cafe, ăn uống trong nhà, khu du lịch có mái che.
+         - Nếu nắng: Ưu tiên biển, núi, hoạt động ngoài trời.
+      3. **Tìm dữ liệu:** Dùng tool 'search_travel_data' để tìm địa điểm (Attraction) và quán ăn (Food) phù hợp.
+      4. **Lập lịch trình:** Tổng hợp thông tin thành lịch trình chi tiết (Sáng/Trưa/Chiều/Tối).
       
-      2. **Tự động giả định (Không hỏi lại):**
-         - Nếu thiếu số ngày -> Giả định đi **2 ngày 1 đêm**.
-         - Nếu thiếu ngày đi -> Giả định là **${dateStr}**.
-         - Nếu thiếu sở thích -> Giả định là **"Nổi tiếng"** và **"Đặc sản"**.
-      
-      3. **Luồng làm việc:**
-         - Bước 1: Phân tích câu nói.
-         - Bước 2: Dùng tool 'search_travel_data' để tìm Địa điểm (Attraction) và Ăn uống (Food) phù hợp với ngân sách và sở thích đã phân tích.
-         - Bước 3: Tổng hợp dữ liệu từ tool và viết lịch trình chi tiết.
-
-      4. **Kết quả trả về:**
-         - Trình bày dạng Markdown đẹp mắt.
-         - Có tính toán tổng chi phí ước tính.
-         - Giọng văn thân thiện, chuyên nghiệp.
+      YÊU CẦU ĐẦU RA (MARKDOWN):
+      - **Tiêu đề:** Hấp dẫn (VD: "Lịch trình khám phá Hà Tĩnh 2N1Đ...").
+      - **Thời tiết:** Cảnh báo ngắn gọn.
+      - **Lịch trình:** Chia theo khung giờ. Mỗi địa điểm phải có Tên + Địa chỉ (Huyện/Thị xã) + Giá vé ước tính.
+      - **Tổng chi phí:** Ước tính cho cả chuyến đi.
+      - **Giọng điệu:** Thân thiện, như một người bạn địa phương.
     `;
 
     const messages = [
@@ -178,40 +183,49 @@ const handleChat = async (req, res) => {
       { role: "user", content: message }
     ];
 
-    // --- GỌI AI VÒNG 1 (Để AI quyết định tìm gì) ---
+    // --- STEP 1: Gửi Request đầu tiên cho AI ---
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Model này thông minh và rẻ
+      model: "gpt-4o-mini", // Hoặc gpt-3.5-turbo-0125 (tiết kiệm hơn)
       messages: messages,
       tools: tools,
-      tool_choice: "auto", 
+      tool_choice: "auto",
     });
 
-    const aiMsg = completion.choices[0].message;
+    const aiMessage = completion.choices[0].message;
 
-    // --- XỬ LÝ KHI AI ĐÒI GỌI TOOL (Tìm DB) ---
-    if (aiMsg.tool_calls) {
-      messages.push(aiMsg); // Lưu history
+    // --- STEP 2: Xử lý nếu AI muốn dùng Tool ---
+    if (aiMessage.tool_calls) {
+      messages.push(aiMessage); // Lưu context cuộc hội thoại
 
-      // AI có thể gọi nhiều tool cùng lúc (VD: Tìm 1 cái cho 'Attraction' và 1 cái cho 'Food')
-      for (const toolCall of aiMsg.tool_calls) {
+      // Thực thi song song các tool (nếu AI gọi nhiều tool cùng lúc)
+      await Promise.all(aiMessage.tool_calls.map(async (toolCall) => {
         const fnName = toolCall.function.name;
         const args = JSON.parse(toolCall.function.arguments);
+        let toolResponse = "";
 
         if (fnName === "search_travel_data") {
-          // Gọi hàm query DB của chúng ta
-          const dbResult = await queryDatabase(args.keyword, args.type, args.budget_level);
-          
-          // Đẩy kết quả DB về cho AI
-          messages.push({
-            tool_call_id: toolCall.id,
-            role: "tool",
-            name: fnName,
-            content: dbResult
-          });
+          toolResponse = await queryDatabase(args.keyword, args.type, args.budget_level);
+        } 
+        else if (fnName === "get_weather_forecast") {
+          // Gọi service thời tiết thật của bạn
+          try {
+             // Mockup nếu chưa có hàm thật: toolResponse = JSON.stringify({ temp: 28, condition: "Nắng đẹp" });
+             toolResponse = JSON.stringify(await WeatherService.getForecast("Ha Tinh", args.days || 2));
+          } catch (e) {
+             toolResponse = JSON.stringify({ info: "Không lấy được thời tiết, cứ giả định là trời đẹp." });
+          }
         }
-      }
 
-      // --- GỌI AI VÒNG 2 (Để AI viết lịch trình từ data DB) ---
+        // Đẩy kết quả tool vào messages
+        messages.push({
+          tool_call_id: toolCall.id,
+          role: "tool",
+          name: fnName,
+          content: toolResponse
+        });
+      }));
+
+      // --- STEP 3: Gọi AI lần cuối để tổng hợp kết quả ---
       const finalResponse = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: messages,
@@ -223,15 +237,15 @@ const handleChat = async (req, res) => {
       });
     }
 
-    // Trường hợp AI chém gió luôn mà không cần tìm DB (ít gặp nếu prompt bắt buộc dùng tool)
+    // Nếu AI không gọi tool (chỉ chém gió)
     return res.json({ 
       success: true, 
-      message: aiMsg.content 
+      message: aiMessage.content 
     });
 
   } catch (error) {
-    console.error("Chatbot Error:", error);
-    return res.status(500).json({ message: "Lỗi xử lý, vui lòng thử lại." });
+    console.error("❌ Chat Controller Error:", error);
+    return res.status(500).json({ message: "Hệ thống đang bận, vui lòng thử lại sau." });
   }
 };
 

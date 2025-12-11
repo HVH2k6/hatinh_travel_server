@@ -1,37 +1,39 @@
-const District = require('../models/DistrictModel');
+// const District = require('../models/DistrictModel'); // XÓA
 const Ward = require('../models/WardModel');
 const Province = require('../models/ProvinceModel');
 
-
-const getProvinces = async(req, res)=>{
-// get models province
-  const provinces = await Province.find()
-  res.json(provinces);
-}
-const getDistricts = async (req, res) => {
+// 1. Lấy danh sách Tỉnh
+const getProvinces = async(req, res) => {
   try {
-    const { province_code } = req.query;
-    const districts = await District.find({
-      province_code: Number(province_code),
-    }).sort({ name: 1 });
-    res.json(districts);
+    const provinces = await Province.find().sort({ code: 1 });
+    res.json(provinces);
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi lấy danh sách huyện' });
+    res.status(500).json({ message: 'Lỗi lấy danh sách tỉnh' });
   }
-};
+}
+
+// 2. Hàm getDistricts -> XÓA (Vì đã bỏ cấp huyện)
+
+// 3. Lấy danh sách Xã (Sửa logic: tìm theo Tỉnh)
 const getWards = async (req, res) => {
   try {
-    const { district_id } = req.query;
-    const district = await District.findById(district_id);
-    if (!district)
-      return res.status(404).json({ message: 'Không tìm thấy huyện' });
+    // Frontend giờ sẽ gửi lên province_code thay vì district_id
+    const { province_code } = req.query; 
 
-    const wards = await Ward.find({ district_code: district.code }).sort({
-      name: 1,
-    });
+    if (!province_code) {
+      return res.status(400).json({ message: 'Thiếu mã tỉnh (province_code)' });
+    }
+
+    // Tìm trực tiếp trong bảng Ward dựa vào province_code
+    const wards = await Ward.find({ 
+      province_code: Number(province_code) 
+    }).sort({ name: 1 });
+
     res.json(wards);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Lỗi lấy danh sách xã' });
   }
 };
-module.exports = { getDistricts, getWards, getProvinces };
+
+module.exports = { getWards, getProvinces };

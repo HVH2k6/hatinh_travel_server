@@ -7,6 +7,6 @@ const router = express.Router();
 router.get('/province', controller.getProvinces);
 
 router.get('/wards', controller.getWards);
-router.get('/districts', controller.getDistricts);
+// router.get('/districts', controller.getDistricts);
 
 module.exports = router;

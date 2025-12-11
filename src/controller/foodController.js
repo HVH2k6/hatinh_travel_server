@@ -1,10 +1,11 @@
 const { paginate } = require('../helper/pagination');
 const Food = require('../models/FoodModel');
 const { default: mongoose } = require('mongoose');
-const User = require('../models/UserModel');
+
+// --- HELPER ---
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
-const toObjectId = (id) =>
-  isValidId(id) ? new mongoose.Types.ObjectId(id) : null;
+const toObjectId = (id) => (isValidId(id) ? new mongoose.Types.ObjectId(id) : null);
+
 const normalizeListImages = (list) => {
   if (!list) return [];
   if (Array.isArray(list)) return [...new Set(list.filter(Boolean))];
@@ -19,34 +20,48 @@ const normalizeListImages = (list) => {
   return [];
 };
 
+// 1. Build Address: Bỏ districtId
 const buildAddress = (a) => ({
   provinceId: toObjectId(a?.provinceId),
-  districtId: toObjectId(a?.districtId),
+  // districtId: toObjectId(a?.districtId), // Đã bỏ
   wardId: toObjectId(a?.wardId),
   detail: (a?.detail || '').trim(),
 });
+
+// 2. Populate: Bỏ districtId
+const POPULATE = [
+  { path: 'address.provinceId', select: 'name codename' },
+  { path: 'address.wardId', select: 'name codename' },
+];
+
+/* -------------------- CREATE -------------------- */
 const create = async (req, res) => {
   try {
-    const { name, description, price, image, list_image, ingredients } =
-      req.body;
+    const { name, description, price, image, list_image, ingredients, address } = req.body;
+    
     const food = await Food.create({
       name,
       description,
       price,
       image,
       list_image: normalizeListImages(list_image),
-      address: buildAddress(req.body.address),
+      address: buildAddress(address),
       ingredients,
     });
-    res.status(200).json(food);
+
+    // Populate để trả về full data ngay sau khi tạo
+    const populatedFood = await food.populate(POPULATE);
+
+    res.status(201).json(populatedFood);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+/* -------------------- DELETE -------------------- */
 const deleteFood = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("🚀 ~ deleteFood ~ id:", id)
 
     if (!isValidId(id)) {
       return res.status(400).json({ message: 'ID không hợp lệ' });
@@ -63,17 +78,31 @@ const deleteFood = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-const POPULATE = [
-  { path: 'address.provinceId', select: 'name codename' },
-  { path: 'address.districtId', select: 'name codename' },
-  { path: 'address.wardId', select: 'name codename' },
-];
+
+/* -------------------- GET ALL (List) -------------------- */
 const getAll = async (req, res) => {
   try {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 10);
 
     const where = {};
+
+    // 1. Tìm kiếm theo tên
+    if (req.query.q) {
+        where.name = { $regex: req.query.q, $options: 'i' };
+    }
+
+    // 2. Lọc theo Tỉnh (Thay thế huyện)
+    if (req.query.provinceId && isValidId(req.query.provinceId)) {
+        where['address.provinceId'] = toObjectId(req.query.provinceId);
+    }
+
+    // 3. Lọc giá (Ví dụ: minPrice, maxPrice)
+    if (req.query.minPrice || req.query.maxPrice) {
+        where.price = {};
+        if (req.query.minPrice) where.price.$gte = Number(req.query.minPrice);
+        if (req.query.maxPrice) where.price.$lte = Number(req.query.maxPrice);
+    }
 
     const result = await paginate({
       model: Food,
@@ -90,81 +119,74 @@ const getAll = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+/* -------------------- GET DETAIL -------------------- */
 const getById = async (req, res) => {
   try {
     const { id } = req.params;
-    const food = await Food.findById(id).populate(POPULATE);
+    if (!isValidId(id)) return res.status(400).json({ message: 'ID không hợp lệ' });
+
+    // Thêm .lean()
+    const food = await Food.findById(id).populate(POPULATE).lean();
+    
+    if (!food) return res.status(404).json({ message: 'Không tìm thấy món ăn' });
     res.json(food);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 const getBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
-    const food = await Food.findOne({ slug: slug }).populate(POPULATE);
+    // Thêm .lean()
+    const food = await Food.findOne({ slug }).populate(POPULATE).lean();
+    
+    if (!food) return res.status(404).json({ message: 'Không tìm thấy món ăn' });
     res.json(food);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+/* -------------------- UPDATE -------------------- */
 const update = async (req, res) => {
   try {
     const { id } = req.params;
-    // const userId = req.user?.id || req.query.userId; // Lấy ID người đang thao tác
+    if (!isValidId(id)) return res.status(400).json({ message: 'ID không hợp lệ' });
 
-    // if (!userId) {
-    //   return res.status(401).json({ message: 'Bạn chưa đăng nhập' });
-    // }
+    // Note: Phần check quyền (Auth) bạn nên xử lý ở Middleware hoặc giữ logic cũ nếu cần.
+    // Ở đây mình tập trung vào logic update data sạch sẽ.
 
-    // 1. Tìm Shop theo ID trước (Chưa quan tâm ai sở hữu)
-    const food = await Food.findById(id);
+    const data = req.body;
+    const payload = {};
 
-    if (!food) {
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.image !== undefined) payload.image = data.image;
+    if (data.price !== undefined) payload.price = data.price;
+    if (data.ingredients !== undefined) payload.ingredients = data.ingredients;
+    
+    if (data.list_image !== undefined) {
+        payload.list_image = normalizeListImages(data.list_image);
+    }
+
+    // Cập nhật Address (Logic mới bỏ district)
+    if (data.address !== undefined) {
+        payload.address = buildAddress(data.address);
+    }
+
+    const updatedFood = await Food.findByIdAndUpdate(
+        id,
+        { $set: payload },
+        { new: true, runValidators: true }
+    ).populate(POPULATE);
+
+    if (!updatedFood) {
       return res.status(404).json({ message: 'Món ăn không tồn tại' });
     }
 
-    // // 2. CHECK QUYỀN: Là chủ sở hữu HOẶC là Admin
-    // const isOwner =
-    //   shop.sellerId && shop.sellerId.toString() === userId.toString();
-
-    // // Nếu KHÔNG phải chủ shop, thì mới bắt đầu kiểm tra xem có phải Admin không
-    // if (!isOwner) {
-    //   const checkInfoUser = await User.findById(userId).populate('roleId');
-
-    //   // Phòng trường hợp user lỗi hoặc không có role
-    //   if (!checkInfoUser || !checkInfoUser.roleId) {
-    //     return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
-    //   }
-
-    //   const getRoleId = checkInfoUser.roleId._id;
-    //   const roleUser = await getRolesByNames(['Admin']);
-    //   const roleAdminId = roleUser.Admin._id;
-
-    //   // Nếu không phải Admin -> Chặn luôn
-    //   if (!getRoleId.equals(roleAdminId)) {
-    //     return res
-    //       .status(403)
-    //       .json({
-    //         message: 'Bạn không phải chủ shop và cũng không phải Admin',
-    //       });
-    //   }
-    // }
-    // Nếu code chạy xuống được đây thì tức là: Hoặc là Owner, Hoặc là Admin.
-
-    // 3. UPDATE DATA (Logic Patch)
-    const data = req.body;
-
-    if (data.name) food.name = data.name;
-    if (data.description) food.description = data.description;
-    if (data.image) food.image = data.image;
-    if (data.price) food.price = data.price;
-    if (data.list_image) food.list_image = normalizeListImages(data.list_image);
-    if (data.address) food.address = buildAddress(data.address);
-    if (data.ingredients) food.ingredients = data.ingredients;
-
-    await food.save();
-    res.status(200).json({ message: 'Cap nhat thanh cong', food });
+    res.status(200).json({ message: 'Cập nhật thành công', food: updatedFood });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
