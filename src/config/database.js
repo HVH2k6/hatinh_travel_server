@@ -3,6 +3,7 @@ require('dotenv').config();
 
 // Lấy link DB từ biến môi trường
 const MONGODB_CONNECT = process.env.MONGODB_CONNECT;
+console.log("🚀 ~ MONGODB_CONNECT:", MONGODB_CONNECT)
 
 if (!MONGODB_CONNECT) {
   throw new Error('Please define the MONGODB_CONNECT environment variable');

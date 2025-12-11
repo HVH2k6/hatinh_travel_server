@@ -4,6 +4,7 @@ const app = express();
 const connection = require('./config/database');
 const route = require('./routes/indexRouter');
 const cors = require('cors');
+const dbConnect = require('./config/database');
 
 app.use(express.urlencoded({ extended: true }));
 // Sửa cors: Cụ thể domain frontend để bảo mật hơn (hoặc để true nếu test)
