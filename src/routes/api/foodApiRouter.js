@@ -11,6 +11,6 @@ router.get('/food-detail/:slug', controller.getBySlug);
 router.get('/', controller.getAll);
 router.delete('/delete/:id', controller.deleteFood);
 router.patch('/update/:id', controller.update);
-
+router.get('/ward/:codename', controller.getByWardCodename);
 
 module.exports = router;

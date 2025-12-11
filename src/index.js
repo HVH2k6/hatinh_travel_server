@@ -8,7 +8,7 @@ const cors = require('cors');
 app.use(express.urlencoded({ extended: true }));
 // Sửa cors: Cụ thể domain frontend để bảo mật hơn (hoặc để true nếu test)
 app.use(cors({ 
-    origin: ["https://hatinhtravel.net", "https://www.hatinhtravel.net"], 
+    origin: ["https://hatinhtravel.net", "https://www.hatinhtravel.net","http://localhost:3000"], 
     credentials: true 
 }));
 

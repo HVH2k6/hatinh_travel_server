@@ -16,4 +16,5 @@ router.patch(
   controller.update
 );
 router.delete('/delete/:id', controller.deleteAttraction);
+router.get('/ward/:codename', controller.getByWardCodename);
 module.exports = router;

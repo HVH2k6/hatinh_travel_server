@@ -213,6 +213,7 @@ const update = async (req, res) => {
 
 /* -------------------- LIST (Optimized) -------------------- */
 const { paginate } = require('../helper/pagination');
+const WardModel = require('../models/WardModel');
 
 const getAll = async (req, res) => {
   try {
@@ -299,7 +300,47 @@ const deleteAttraction = async (req, res) => {
 };
 
 const test = async (_req, res) => res.status(200).json({ message: 'test' });
+// Dùng cho menu: /dac-san/:ward_codename
+const getByWardCodename = async (req, res) => {
+  try {
+    const { codename } = req.params;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
 
+    // 1. Tìm ID của xã dựa trên codename (ví dụ: 'xa-cam-binh')
+    const ward = await WardModel.findOne({ codename: codename });
+
+    if (!ward) {
+      return res.status(404).json({ message: 'Không tìm thấy địa phương này.' });
+    }
+
+    // 2. Query món ăn thuộc xã đó
+    const where = { 'address.wardId': ward._id };
+
+    const result = await paginate({
+      model: Attractions,
+      page,
+      limit,
+      where,
+      populate: POPULATE,
+      sort: { createdAt: -1 },
+      lean: true,
+    });
+
+    // Trả về thêm tên xã để FE hiển thị tiêu đề (VD: Đặc sản Xã Cẩm Bình)
+    res.json({
+        ...result,
+        wardInfo: {
+            name: ward.name,
+            codename: ward.codename
+        }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
 module.exports = {
   createAttraction,
   getDetailAttraction,
@@ -308,4 +349,5 @@ module.exports = {
   deleteAttraction,
   detail,
   test,
+  getByWardCodename
 };
