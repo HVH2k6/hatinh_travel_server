@@ -14,6 +14,7 @@ const artRouter = require('./api/artRouter');
 const reviewRouter = require('./api/reviewRouter');
 const homeRouter = require('./api/homeRouter');
 const chatBotRouter = require('./api/chatBotRouter');
+const searchRouter = require('./api/searchApi');
 module.exports = (app) => {
   app.use('/', homeRouter);
   app.use('/api/user', userRouter);
@@ -33,4 +34,6 @@ module.exports = (app) => {
 
   app.use('/api/review', reviewRouter);
   app.use('/api/ai', chatBotRouter);
+
+  app.use('/api/search', searchRouter);
 };
