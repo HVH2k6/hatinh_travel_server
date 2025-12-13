@@ -9,7 +9,7 @@
  * @param {number} params.minutes       - Số phút hiệu lực (vd: 5)
  * @param {string} [params.heroUrl]     - Ảnh hero (URL tuyệt đối). Vd: https://your-cdn/hatinh-hero.jpg
  * @param {string} [params.appUrl]      - Link mở ứng dụng / website
- * @param {string} [params.supportEmail] - Email hỗ trợ
+ * @param {string} [params.telesp] - Email hỗ trợ
  * @param {number} [params.year]        - Năm hiển thị footer
  */
 function otpEmailTemplate({
@@ -135,7 +135,7 @@ function otpEmailTemplate({
   const text = `${brand} - Ma OTP cua ban: ${code}
 Ma co hieu luc ${minutes} phut. Khong chia se ma nay cho bat ky ai.
 Mo ung dung: ${appUrl}
-Ho tro: ${supportEmail}
+
 `;
 
   return { subject, html, text };
