@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const RefreshToken = require('../models/RefreshTokenModel');
 const Otp = require('../models/OtpModel');
 const otpEmailTemplate = require('../templates/otpmail');
+const sendMail = require('../helper/sendMail');
 
 const signUp = async (req, res) => {
   try {

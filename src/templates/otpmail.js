@@ -17,8 +17,8 @@ function otpEmailTemplate({
   code = '123456',
   minutes = 5,
   heroUrl = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&q=80&auto=format&fit=crop', // biển
-  appUrl = 'https://your-app.example.com',
-  supportEmail = 'support@example.com',
+  appUrl = 'https://hatinhtravel.net',
+  telesp = 'devtheworld',
   year = new Date().getFullYear(),
 } = {}) {
   const subject = `[${brand}] Mã OTP của bạn: ${code}`;
@@ -88,7 +88,7 @@ function otpEmailTemplate({
           <!-- Nội dung -->
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px;">
             <tr><td>
-              <p class="title">Xác thực đăng ký của bạn</p>
+              
               <p class="text" style="margin-top:8px;">
                 Đây là mã OTP để xác nhận email của bạn. Mã có hiệu lực trong <b>${minutes} phút</b>.
               </p>
@@ -121,7 +121,7 @@ function otpEmailTemplate({
         <tr><td height="16"></td></tr>
 
         <tr><td class="center footer">
-          © ${year} ${brand}. Cần hỗ trợ? <a href="mailto:${supportEmail}" style="color:#0ea5e9;text-decoration:none;">${supportEmail}</a>
+          © ${year} ${brand}. Cần hỗ trợ? <a href="https://t.me/${telesp}" style="color:#0ea5e9;text-decoration:none;">${telesp}</a>
         </td></tr>
 
         <tr><td height="28"></td></tr>
