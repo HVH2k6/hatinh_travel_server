@@ -5,13 +5,13 @@ const { verifyMiddleware } = require('../../controller/otpController');
 
 const router = express.Router();
 
-
-router.post('/sign-up',verifyMiddleware, controller.signUp);
-
+router.post('/sign-up', verifyMiddleware, controller.signUp);
 
 router.post('/sign-in', controller.signIn);
 
+router.post('/forgot-password', controller.forgotPassword);
 
+router.post('/reset-password', controller.resetPassword);
 router.get('/me', verifyToken, controller.getMe);
 router.post('/logout', controller.logout);
 router.post('/renew-access-token', controller.renewAccessToken);
