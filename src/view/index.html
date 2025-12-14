@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>HatinhTravel Server</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+        .card-custom {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .logo {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .badge-server {
+            background-color: #198754;
+            font-size: 0.9rem;
+        }
+
+        .author a {
+            color: #ffc107;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .author a:hover {
+            text-decoration: underline;
+        }
+
+        .btn-custom {
+            border-radius: 30px;
+            padding: 10px 25px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card-custom text-center">
+                <div class="mb-3">
+                    <span class="badge badge-server">SERVER ONLINE</span>
+                </div>
+
+                <h1 class="logo mb-3">HatinhTravel.net</h1>
+                <p class="lead">
+                    Đây là <strong>server chính thức</strong> của website <strong>HatinhTravel.net</strong>,
+                    nơi cung cấp thông tin du lịch Hà Tĩnh, địa điểm tham quan, ẩm thực và trải nghiệm hấp dẫn.
+                </p>
+
+                <hr class="border-light my-4">
+
+                <h5 class="mb-2">🚀 Công nghệ & Hệ thống</h5>
+                <p>
+                    Server được tối ưu hiệu năng, bảo mật cao, đảm bảo tốc độ truy cập ổn định
+                    và trải nghiệm mượt mà cho người dùng.
+                </p>
+
+                <div class="author mt-4">
+                    <p class="mb-1">👨‍💻 Phát triển bởi</p>
+                    <p>
+                        <strong>DevTheWorld</strong> |
+                        Telegram: <a href="https://t.me/devtheworld" target="_blank">@devtheworld</a>
+                    </p>
+                </div>
+
+                <div class="mt-4">
+                    <button class="btn btn-warning btn-custom me-2" onclick="showTime()">
+                        ⏰ Thời gian server
+                    </button>
+                    <a href="https://hatinhtravel.net" target="_blank" class="btn btn-light btn-custom">
+                        🌍 Truy cập website
+                    </a>
+                </div>
+
+                <p id="time" class="mt-3 small"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function showTime() {
+        const now = new Date();
+        document.getElementById("time").innerText =
+            "Thời gian hiện tại: " + now.toLocaleString("vi-VN");
+    }
+</script>
+
+</body>
+</html>

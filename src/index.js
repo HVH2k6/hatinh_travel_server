@@ -5,6 +5,7 @@ const connection = require('./config/database');
 const route = require('./routes/indexRouter');
 const cors = require('cors');
 const dbConnect = require('./config/database');
+const path = require("path");
 
 app.use(express.urlencoded({ extended: true }));
 // Sửa cors: Cụ thể domain frontend để bảo mật hơn (hoặc để true nếu test)
@@ -12,6 +13,8 @@ app.use(cors({
     origin: ["https://hatinhtravel.net", "https://www.hatinhtravel.net","http://localhost:3000"], 
     credentials: true 
 }));
+app.set('views', path.join(__dirname, 'view'));
+app.set('view engine', 'html');
 
 app.use(express.json());
 app.use(async (req, res, next) => {

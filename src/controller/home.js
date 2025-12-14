@@ -1,4 +1,4 @@
 const home = (req, res) => {
-    res.send("Welcome to API");
+    res.render('index.html');
 }
 module.exports = { home };
