@@ -13,8 +13,7 @@ app.use(cors({
     origin: ["https://hatinhtravel.net", "https://www.hatinhtravel.net","http://localhost:3000"], 
     credentials: true 
 }));
-app.set('view', path.join(__dirname, 'view'));
-app.set('view engine', 'html');
+
 
 app.use(express.json());
 app.use(async (req, res, next) => {
