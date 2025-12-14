@@ -9,7 +9,7 @@ require('dotenv').config(); // Cần cài npm install dotenv
 
 // Config OpenAI an toàn
 const openai = new OpenAI({
-  apiKey: "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", // Hãy đặt key trong file .env
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 // --- 1. TOOLS DEFINITION ---
