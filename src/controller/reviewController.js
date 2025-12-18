@@ -5,14 +5,15 @@ const { default: mongoose } = require('mongoose');
 
 // --- Hàm phụ: Check chủ sở hữu (Giữ nguyên từ code của bạn) ---
 const isOwnerOfTarget = async (userId, targetId, targetType) => {
+
   if (targetType === 'Shop') {
-    const shop = await Shop.findOne({ _id: targetId, ownerId: userId });
+    const shop = await Shop.findOne({ _id: targetId, sellerId: userId });
     return !!shop;
   }
   if (targetType === 'Product') {
     const product = await Product.findById(targetId);
     if (!product) return false;
-    const shop = await Shop.findOne({ _id: product.shopId, ownerId: userId });
+    const shop = await Shop.findOne({ _id: product.shopId, sellerId: userId });
     return !!shop;
   }
   return false;
@@ -157,9 +158,6 @@ const remove = async (req, res) => {
       return res.status(200).json({ message: 'Đã xóa đánh giá của bạn' });
     }
 
-    // 3. SELLER (Chủ shop): KHÔNG ĐƯỢC XÓA đánh giá của khách
-    // Đây là chuẩn chung thương mại điện tử để đảm bảo tính minh bạch.
-    // Nếu Seller muốn xóa reply của chính mình -> Dùng API Update (gửi reply: null)
     if (userRole === 'Seller') {
       return res.status(403).json({
         message: 'Chủ shop không có quyền xóa đánh giá của khách hàng',
@@ -233,19 +231,20 @@ const update = async (req, res) => {
     const { id } = req.params;
     // Lấy các trường dữ liệu từ body
     const { content, rating, images, reply } = req.body;
-
+    
     const userRole = req.userRole; // Lấy từ Middleware
     const userId = req.userId;     // Lấy từ Middleware
-
+    
     // 1. Tìm bài review gốc
     const review = await Review.findById(id);
     if (!review) {
       return res.status(404).json({ message: 'Đánh giá không tồn tại' });
     }
-
+    
     // ======================================================
     // CASE 1: ADMIN (Quyền cao nhất)
     // ======================================================
+    console.log("role",userRole)
     if (userRole === 'Admin') {
       // Tạo object dữ liệu để update
       const updateData = {};
@@ -281,7 +280,7 @@ const update = async (req, res) => {
     // ======================================================
     // CASE 2: SELLER (Chủ Shop / Sản phẩm)
     // ======================================================
-    if (userRole === 'Seller') {
+    if (userRole == 'Seller') {
       // A. Chặn địa điểm du lịch (Seller không sở hữu địa điểm công cộng)
       if (review.targetType === 'Attraction') {
         return res.status(403).json({ 
@@ -301,7 +300,7 @@ const update = async (req, res) => {
             message: 'Bạn không có quyền phản hồi (Không phải chủ sở hữu)' 
         });
       }
-
+      
       // C. Validate nội dung reply
       if (!reply || reply.trim() === '') {
         return res.status(400).json({ 

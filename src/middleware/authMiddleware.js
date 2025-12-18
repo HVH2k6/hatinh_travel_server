@@ -14,8 +14,6 @@ const attachRole = async (req, res, next) => {
       return res.status(401).json({ message: 'User không tồn tại' });
     }
 
-    // 3. Gắn tên Role vào request để Controller dùng
-    // Giả sử roleId có field 'name' là 'Admin', 'Seller', 'User'
     req.userRole = userInDb.roleId.name; 
     req.userId = userInDb._id; // Gắn luôn ID chuẩn từ DB cho chắc
 
