@@ -6,7 +6,7 @@ const fileUpload = multer();
 
 router.post(
   '/cloudinary',
-  fileUpload.single('file'),
+  fileUpload.single('logoUrl'),
 
   controller.cloud
 );
